@@ -58,7 +58,7 @@ PCHAR GetDevicePath( IN  LPGUID InterfaceGuid )
 
 		// 获取设备接口详细信息
 		// 第一次调用，DeviceInterfaceDetailData置为NULL，获取待分配缓冲区的大小
-		// 根据MSDN，此次调用返回值为FALSE，而且GetLastError为122，不要进行错误检查
+		// 根据MSDN，此次调用返回值为FALSE，而且GetLastError为122，如果进行错误检查，需要注意
 		SetupDiGetDeviceInterfaceDetail(
 			DeviceInfoSet,
 			&DeviceInterfaceData, // 待获取详细信息的设备接口
