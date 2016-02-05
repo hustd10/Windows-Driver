@@ -1,0 +1,122 @@
+; 完整的Hello Word驱动INX文件
+; 参考WDK示例 echo.inx
+
+;**********************************************************************************
+; 版本部分
+;**********************************************************************************
+
+; 版本域
+[Version]
+Signature="$WINDOWS NT$"  ; 固定
+Class=HUSTSample  ; 我们的驱动不属于已有的设备类，定义一个新的设备类
+ClassGuid={FDA3877E-5FF3-4c18-8235-7FEA16EE04E2}  ; 设备类的GUID
+Provider=%ProviderName%  ; 驱动的作者，由字符串域中的ProviderName指定
+DriverVer=01/12/2016,6.1.7600.16385
+CatalogFile=KmdfSamples.cat   ; 签名文件
+
+;**********************************************************************************
+; 设备类部分
+;**********************************************************************************
+
+; 设备类安装域
+[ClassInstall32]
+Addreg=SampleClassReg  ; 写注册表之类，要写入的内容放在SampleClassReg子域中
+
+; SampleClassReg子域
+[SampleClassReg]
+HKR,,,0,%ClassName%  ; 设备类的名称，由字符串域的ClassName决定
+HKR,,Icon,,-5  ; 设备管理器中显示的图标，使用5号系统图标
+
+;**********************************************************************************
+; 产商及设备安装部分
+;**********************************************************************************
+
+; 厂商域
+[Manufacturer]
+%MfgName%=Standard,NT$ARCH$  ; 厂商名由字串串域MfgName决定，产品域有两个，一个为Standard，一个为Standard.NT“x86”（带版本信息）
+
+; Standard产品域
+[Standard]
+%HelloWorld.DeviceDesc%=HelloWorld_Device, root\HelloWorld  ; 设备描述（可以等同理解为设备名）由字符串域中的HelloWorld.DeviceDesc指定，设备安装域为HelloWorld_Device，硬件ID为root\HelloWorld
+
+; Standard.NT$ARCH$产品域
+[Standard.NT$ARCH$]
+%HelloWorld.DeviceDesc%=HelloWorld_Device, root\HelloWorld  ; 同上
+
+; 设备安装域
+[HelloWorld_Device.NT]
+CopyFiles=Drivers_Dir  ; 需要拷贝的文件列表，由Drivers_Dir子域指定，一般这个文件就是我们编写的驱动文件.sys了
+
+; Drivers_Dir子域
+[Drivers_Dir]
+HelloWorld.sys  ; 我们编写的驱动文件
+
+; 设备域服务子域
+[HelloWorld_Device.NT.Services]
+AddService=HelloWorld, %SPSVCINST_ASSOCSERVICE%, HelloWorld_Service_Inst  ; 添加服务指令，添加的服务名为HelloWorld，%SPSVCINST_ASSOCSERVICE%为一个标记，指定如何增加服务，在Setupapi.h中定义，HelloWorld_Service_Inst为服务安装子域
+
+; HelloWorld_Service_Inst服务安装子域
+[HelloWorld_Service_Inst]
+DisplayName = %HelloWorld.SVCDESC%  ; 服务显示名称，与服务名不同
+ServiceType = 1  ; 服务类型SERVICE_KERNEL_DRIVER
+StartType = 3  ; 启动类型SERVICE_DEMAND_START
+ErrorControl = 1  ; 错误控制级别SERVICE_ERROR_NORMAL
+ServiceBinary = %12%\HelloWorld.sys  ; 镜像文件路径，即.sys文件路径
+
+;**********************************************************************************
+; 辅助安装器部分
+;**********************************************************************************
+
+;设备域辅助安装器子域
+[HelloWorld_Device.NT.CoInstallers]
+AddReg = HelloWorld_Device_CoInstaller_AddReg  ; 写注册表子域
+CopyFiles = HelloWorld_Device_CoInstaller_CopyFiles  ; 拷贝文件列表
+
+; 写注册表子域
+[HelloWorld_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000,"WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"  ; 注册表项为CoInstallers32，WdfCoInstaller为入口函数
+
+; 拷贝文件列表
+[HelloWorld_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll  ; 拷贝对应版本的.dll
+
+; Wdf域
+[HelloWorld_Device.NT.Wdf]
+KmdfService = HelloWorld, HelloWorld_wdfsect  ; HelloWorld为操作系统分配给驱动程序的内核模式服务的名称，HelloWorld_wdfsect是一个子域
+
+; HelloWorld_wdfsect子域
+[HelloWorld_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$  ; KMDF库的版本号
+
+;**********************************************************************************
+; 文件域部分
+;**********************************************************************************
+
+; 源磁盘域
+[SourceDisksNames]
+1 = %DiskId1%,,,””  ; 只有一个磁盘，ID为1，磁盘描述为字符串域中的DiskId1
+
+; 源文件域
+[SourceDisksFiles]
+; 本INX文件CopyFiles涉及两个文件的拷贝，HelloWorld.sys和辅助安装器WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll，分别指定它们
+HelloWorld.sys = 1  ; 1号磁盘
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1  ; 1号磁盘
+
+; 目的域
+[DestinationDirs]
+DefaultDestDir = 12  ; 默认目录，12是Windows定义的，等同于%SystemRoot%\system32\drivers
+HelloWorld_Device_CoInstaller_CopyFiles  = 11  ; 除了默认目录外，还有一个CopyFiles子域，此子域不使用默认目录，定义为11，等同于%SystemRoot%\system32。其它没有特殊定义的CopyFiles子域则使用默认目录
+
+;**********************************************************************************
+; 字符串部分
+;**********************************************************************************
+
+; 字符串域
+[Strings]
+ProviderName="HUSTD10"  ; 驱动作者
+ClassName="HUST Sample Device"  ; 设备类的名称
+MfgName="HUSTD10"  ; 厂商名称
+HelloWorld.DeviceDesc="HelloWorld"  ; 设备描述（等同理解为设备名）
+SPSVCINST_ASSOCSERVICE = 0x00000002  ; 服务安装标记
+HelloWorld.SVCDESC = "HelloWorld Service"  ; 服务显示名称
+DiskId1 = "HUSTD10 HelloWorld Disk #1"  ; 1号磁盘描述
